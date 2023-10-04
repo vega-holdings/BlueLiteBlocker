@@ -20,7 +20,7 @@
     }
 
     class TwitterUser {
-        constructor(id, handle, name, followers, verified_type, affiliated, we_follow, is_bluecheck, is_blocked) {
+        constructor(id, handle, name, followers, verified_type, affiliated, we_follow, followed_by, is_bluecheck, is_blocked) {
             this.id = id;
             this.handle = handle;
             this.name = name;
@@ -28,6 +28,7 @@
             this.verified_type = verified_type;
             this.affiliated = affiliated;
             this.we_follow = we_follow;
+			this.followed_by = followed_by;
             this.is_bluecheck = is_bluecheck;
             this.is_blocked = is_blocked;
         }
@@ -111,7 +112,7 @@
         setup();
     }
 
-    function hide_tweet(tweet_results, hard_hide, hide_message='Hidden Twitter Blue Tweet') {
+    function hide_tweet(tweet_results, hard_hide, hide_message='Hidden Twitter Tweet') {
         if (tweet_results['result']['__typename'] === 'Tweet') {
             const old_tweet_results = structuredClone(tweet_results['result']);
 
@@ -148,7 +149,7 @@
     function get_tweet_user_info(item_content) {
         // results with type 'Tweet' are normal tweets, 'TweetWithVisibilityResults' are tweets from accounts we blocked
         const allowed_type_names = ['TweetWithVisibilityResults', 'Tweet'];
-
+		
         // only process results with type TimelineTweet (all tweets should have this type)
         if (item_content['itemType'] !== 'TimelineTweet') {
             return false;
@@ -174,7 +175,7 @@
         const user_data = tweet_data['core']['user_results']['result'];
         const legacy_user_data = user_data['legacy'];
         let affiliated = '';
-
+		let followed_by = safe_get_value(legacy_user_data, 'followed_by', false);
         if (key_exists(user_data, 'affiliates_highlighted_label') &&
             key_exists(user_data['affiliates_highlighted_label'], 'label') &&
             key_exists(user_data['affiliates_highlighted_label']['label'], 'userLabelType')
@@ -190,6 +191,7 @@
             legacy_user_data['followers_count'],
             safe_get_value(legacy_user_data, 'verified_type', ''),
             affiliated,
+			followed_by,
             safe_get_value(legacy_user_data, 'following', false),
             user_data['is_blue_verified'],
             safe_get_value(legacy_user_data, 'blocking', false),
@@ -204,7 +206,7 @@
           - aren't a government account
           - have less than X followers
           - aren't followed by us
-        */
+        
         let bad_user = user.is_bluecheck
             && user.followers < blf_settings.follow_limit
             && user.we_follow === false
@@ -212,6 +214,9 @@
 
         if (blf_settings.allow_affiliate && user.affiliated !== '')
             bad_user = false;
+		*/
+		return (user.followers < blf_settings.follow_limit) && !user.we_follow && !user.followed_by;
+
 
         return bad_user;
     }
@@ -221,7 +226,7 @@
 
         if (is_bad_user(user)) {
             hide_tweet(item_content['tweet_results'], blf_settings.hard_hide);
-            console.log(`Tweet filtered from @${user.handle} (Blue User - ${user.followers} followers)`);
+            console.log(`Tweet filtered from @${user.handle} (User - ${user.followers} followers)`);
             return true;
         }
         return false;
