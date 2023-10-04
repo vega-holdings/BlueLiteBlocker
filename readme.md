@@ -1,10 +1,16 @@
-# ![Logo](BlueLiteBlocker/icons/logo-48.png) BlueLiteBlocker (v0.0.0.9)
-
-**Blue Checks are known to the state of California to cause eye damage and reproductive harm.**
+# ![Logo](BlueLiteBlocker/icons/logo-48.png) BlueLiteBlocker (VH MOD) (v0.0.0.9)
 
 ### About
-This extension allows you to hide Tweets from Twitter Blue users you don't follow, if they have less than a set number of followers.
-You can customize the follower threshold and choose between collapsing or removing Tweets. 
+
+Modded to allow you to hide tweets from accounts based on follower counts, does not affect oomfies or mutuals or give a shit about blue check status.
+
+Would be cool to color code basted on ratio (thanks tafphorisms) as well, might fuck with it more later.
+
+Thanks ChatGPT for helping get this done.
+
+
+
+
 
 **Currently Supports**: FireFox, Chrome
 ### Release Builds
