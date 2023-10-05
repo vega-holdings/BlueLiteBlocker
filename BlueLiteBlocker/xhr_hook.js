@@ -20,24 +20,38 @@
     }
 
     class TwitterUser {
-        constructor(id, handle, name, followers, verified_type, affiliated, we_follow, followed_by, is_bluecheck, is_blocked) {
-            this.id = id;
-            this.handle = handle;
-            this.name = name;
-            this.followers = followers;
-            this.verified_type = verified_type;
-            this.affiliated = affiliated;
-            this.we_follow = we_follow;
-			this.followed_by = followed_by;
-            this.is_bluecheck = is_bluecheck;
-            this.is_blocked = is_blocked;
-        }
+    constructor(id, handle, name, followers, friends_count, verified_type, affiliated, we_follow, followed_by, is_bluecheck, is_blocked) {
+        this.id = id;
+        this.handle = handle;
+        this.name = name;
+        this.followers = followers;
+        this.friends_count = friends_count;
+        this.verified_type = verified_type;
+        this.affiliated = affiliated;
+        this.we_follow = we_follow;
+        this.followed_by = followed_by;
+        this.is_bluecheck = is_bluecheck;
+        this.is_blocked = is_blocked;
+        this.normalized_ratio = null;  // Initialize as null
     }
 
+    calculateNormalizedRatio() {
+    console.log(`Calculating ratio for ${this.handle}: followers = ${this.followers}, friends_count = ${this.friends_count}`);
+   if (this.friends_count === 0) {
+    this.normalized_ratio = 100;
+	} else {
+		this.normalized_ratio = ((this.followers - this.friends_count) / (this.followers + this.friends_count)) * 100;
+	}
+	console.log(`Calculated normalized_ratio for ${this.handle}: ${this.normalized_ratio}`);
+	}
+
+
+	}
     // hook XMLHttpRequest.open to filter API responses and remove any blue check tweets
     let old_xml_open = XMLHttpRequest.prototype.open;
 
     XMLHttpRequest.prototype.open = function () {
+		
         if (arguments.length >= 2 && arguments[0] !== "") {
 
             // hook HomeTimeline API to parse timeline tweets
@@ -174,7 +188,9 @@
 
         const user_data = tweet_data['core']['user_results']['result'];
         const legacy_user_data = user_data['legacy'];
-        let affiliated = '';
+		
+		
+		let affiliated = '';
 		let followed_by = safe_get_value(legacy_user_data, 'followed_by', false);
         if (key_exists(user_data, 'affiliates_highlighted_label') &&
             key_exists(user_data['affiliates_highlighted_label'], 'label') &&
@@ -189,14 +205,26 @@
             legacy_user_data['screen_name'],
             legacy_user_data['name'],
             legacy_user_data['followers_count'],
+			legacy_user_data['friends_count'],  // Add this line
             safe_get_value(legacy_user_data, 'verified_type', ''),
             affiliated,
 			followed_by,
             safe_get_value(legacy_user_data, 'following', false),
             user_data['is_blue_verified'],
-            safe_get_value(legacy_user_data, 'blocking', false),
+            safe_get_value(legacy_user_data, 'blocking', false),	
+			
         );
     }
+	
+	function insertRatioIntoTweet(user, tweetElement) {
+    // Create an element to hold the ratio
+    //const ratioElement = document.createElement('span');
+    //ratioElement.innerText = `Normalized Ratio: ${user.normalized_ratio}`;
+    //ratioElement.style.color = 'green';
+    // Insert the element into the tweet
+    //tweetElement.appendChild(ratioElement);
+	}
+
 
     // check if the user is Twitter Blue and meets the filter criteria
     function is_bad_user(user) {
@@ -214,9 +242,9 @@
 
         if (blf_settings.allow_affiliate && user.affiliated !== '')
             bad_user = false;
-		*/
+		*/		
+		
 		return (user.followers < blf_settings.follow_limit) && !user.we_follow && !user.followed_by;
-
 
         return bad_user;
     }
@@ -226,7 +254,7 @@
 
         if (is_bad_user(user)) {
             hide_tweet(item_content['tweet_results'], blf_settings.hard_hide);
-            console.log(`Tweet filtered from @${user.handle} (User - ${user.followers} followers)`);
+            console.log(`Tweet filtered from @${user.handle} (Blue User - ${user.followers} followers)`);
             return true;
         }
         return false;
@@ -270,12 +298,19 @@
                                 user_data['screen_name'],
                                 user_data['name'],
                                 user_data['followers_count'],
+                                user_data['friends_count'],
                                 safe_get_value(user_data, 'ext_verified_type', ''),
                                 affiliated,
                                 user_data['following'],
                                 user_data['ext_is_blue_verified'],
                                 user_data['blocking']
                             );
+							
+                            console.log("User object:", user);
+							user.calculateNormalizedRatio();  // Call this after object is fully initialized
+							console.log(`Calculated normalized_ratio for ${user.handle}: ${user.normalized_ratio}`);
+														
+
 
                             if (is_bad_user(user)) {
                                 // we can prevent tweets from being displayed by removing 'displayType'
@@ -283,7 +318,7 @@
                                 if(key_exists(entry['content']['item']['content'], 'tweet')) {
                                     entry['content']['item']['content']['tweet']['displayType'] = '';
                                 }
-                                console.log(`Tweet removed from @${user.handle} (Blue User - ${user.followers} followers)`);
+                                console.log(`Tweet removed from @${user.handle} (User - ${user.followers} followers)`);
                             }
                         }
                     }
